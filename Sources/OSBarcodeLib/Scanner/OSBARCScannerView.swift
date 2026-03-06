@@ -160,21 +160,15 @@ struct OSBARCScannerView: View {
     // MARK: - Main Element
     var body: some View {
         ZStack {
-            // Camera Stream
-            OSBARCScannerViewControllerRepresentable(viewModel.cameraManager)
+            // Camera Stream (highlight is handled in UIKit for accurate positioning)
+            OSBARCScannerViewControllerRepresentable(
+                viewModel.cameraManager,
+                highlightEnabled: highlightEnabled,
+                highlightColor: UIColor(highlightColor),
+                highlightStrokeWidth: highlightStrokeWidth
+            )
 
             backgroundView
-
-            // Highlight overlay for detected barcode
-            if highlightEnabled,
-               let boundingBox = scanResult.boundingBox,
-               let screenRect = viewModel.cameraManager.convertToScreenCoordinates(boundingBox) {
-                OSBARCHighlightOverlay(
-                    screenRect: screenRect,
-                    color: highlightColor,
-                    strokeWidth: highlightStrokeWidth
-                )
-            }
 
             if isPhoneInPortrait {
                 VStack(spacing: screenPadding) {

@@ -5,4 +5,6 @@ extension Notification.Name {
     static let scanFrameChanged = Notification.Name("scanFrameChanged")
     /// Notification triggered when the scan barcode button gets enabled or disabled.
     static let scanButtonSelection = Notification.Name("scanButtonSelection")
+    /// Notification triggered when a barcode is detected, carrying the bounding box.
+    static let barcodeDetected = Notification.Name("barcodeDetected")
 }

@@ -96,6 +96,10 @@ private extension OSBARCCaptureOutputDecoder {
                 }
                 let format = OSBARCScannerHint.fromVNBarcodeSymbology(bestResult.symbology, withHint: self.hint)
                 let boundingBox = bestResult.boundingBox
+
+                // Post notification for highlight overlay (UIKit handles the coordinate conversion)
+                NotificationCenter.default.post(name: .barcodeDetected, object: boundingBox)
+
                 self.scanResult = OSBARCScanResult(text: payload, format: format, boundingBox: boundingBox)
             }
         }

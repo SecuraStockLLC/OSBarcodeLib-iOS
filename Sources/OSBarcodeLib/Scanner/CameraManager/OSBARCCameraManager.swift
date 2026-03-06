@@ -6,13 +6,6 @@ protocol OSBARCCameraManager {
     /// The layer to display video on
     var videoPreview: CALayer? { get }
 
-    /// Converts a normalized bounding box from Vision coordinates to screen coordinates.
-    /// Vision uses bottom-left origin with normalized (0-1) coordinates relative to the camera frame.
-    /// This method accounts for the preview layer's video gravity (aspect fill/fit) and orientation.
-    /// - Parameter boundingBox: The normalized bounding box from Vision.
-    /// - Returns: The bounding box in screen coordinates, or nil if conversion fails.
-    func convertToScreenCoordinates(_ boundingBox: CGRect) -> CGRect?
-    
     /// Setup camera
     /// - Parameter type: The type of camera to setup. `Nil` value offers the possibility to setup a default camera provided by the implementations.
     func setup(type: OSBARCCameraType?) throws
