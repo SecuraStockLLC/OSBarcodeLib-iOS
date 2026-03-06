@@ -98,7 +98,7 @@ private extension OSBARCScannerViewController {
     func setupBarcodeDetectionObserver() {
         NotificationCenter.default
             .publisher(for: .barcodeDetected)
-            .receive(on: RunLoop.main)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 guard let boundingBox = notification.object as? CGRect else { return }
                 self?.showHighlight(for: boundingBox)
@@ -177,7 +177,12 @@ private extension OSBARCScannerViewController {
 
         // Create rounded rectangle path
         let path = UIBezierPath(roundedRect: convertedRect, cornerRadius: 8)
+
+        // Disable implicit animations for instant updates (no lag)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
         highlightLayer?.path = path.cgPath
+        CATransaction.commit()
 
         // Ensure highlight layer is on top
         if let highlightLayer = highlightLayer {
