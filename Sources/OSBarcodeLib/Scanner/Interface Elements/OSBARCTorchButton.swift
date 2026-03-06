@@ -46,12 +46,19 @@ struct OSBARCTorchButton: View {
 // MARK: - Bundle Extension
 private extension Bundle {
     /// Returns the appropriate bundle for loading image assets.
-    /// Uses Bundle.module for SwiftPM and falls back to the class bundle for CocoaPods.
+    /// Uses Bundle.module for SwiftPM and falls back to the resource bundle for CocoaPods.
     static var imageBundle: Bundle? {
         #if SWIFT_PACKAGE
         return Bundle.module
         #else
-        return Bundle(for: OSBARCScannerBehaviour.self)
+        // For CocoaPods with resource_bundles, find the OSBarcodeLib.bundle
+        let frameworkBundle = Bundle(for: OSBARCScannerBehaviour.self)
+        guard let bundleURL = frameworkBundle.url(forResource: "OSBarcodeLib", withExtension: "bundle"),
+              let resourceBundle = Bundle(url: bundleURL) else {
+            // Fallback to framework bundle if resource bundle not found
+            return frameworkBundle
+        }
+        return resourceBundle
         #endif
     }
 }

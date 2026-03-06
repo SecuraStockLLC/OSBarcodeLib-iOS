@@ -17,8 +17,8 @@ Pod::Spec.new do |spec|
   # Compile from source files
   spec.source_files           = 'Sources/OSBarcodeLib/**/*.{swift,h,m}'
 
-  # Include resources (xcassets for scanner UI)
-  spec.resources              = 'Sources/OSBarcodeLib/**/*.xcassets'
+  # Include resources in isolated bundle (prevents conflicts with app's asset catalog)
+  spec.resource_bundles       = { 'OSBarcodeLib' => ['Sources/OSBarcodeLib/**/*.xcassets'] }
 
   spec.ios.deployment_target  = '14.0'
   spec.swift_versions         = ['5.0', '5.1', '5.2', '5.3', '5.4', '5.5', '5.6', '5.7', '5.8', '5.9', '5.10']
