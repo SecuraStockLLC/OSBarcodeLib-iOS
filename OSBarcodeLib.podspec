@@ -1,19 +1,28 @@
-require 'json'
-package = JSON.parse(File.read(File.join(__dir__, 'package.json')))
-
 Pod::Spec.new do |spec|
-  spec.name                   = package['name']
-  spec.version                = package['version']
+  spec.name                   = 'OSBarcodeLib'
+  spec.version                = '2.1.1'
+  spec.summary                = 'Barcode scanner library for iOS with highlight, delay, and vibration features'
+  spec.description            = 'The OSBarcodeLib is a library built using Swift that offers you a barcode scanner for your iOS application. SecuraStock fork with barcode highlighting, configurable close delay, and vibration feedback.'
 
-  spec.summary                = package['description']
+  spec.homepage               = 'https://github.com/SecuraStockLLC/OSBarcodeLib-iOS'
+  spec.license                = { :type => 'MIT', :file => 'LICENSE' }
+  spec.author                 = { 'SecuraStock' => 'dev@securastock.com' }
 
-  spec.homepage               = "https://github.com/OutSystems/OSBarcodeLib-iOS"
-  spec.license                = { :type => package['license'], :file => 'LICENSE' }
-  spec.author                 = { package['author'] => package['email'] }
+  # Source from git repo, not precompiled binary
+  spec.source                 = {
+    :git => 'https://github.com/SecuraStockLLC/OSBarcodeLib-iOS.git',
+    :branch => 'securastock'
+  }
 
-  spec.source                 = { :http => "https://github.com/OutSystems/OSBarcodeLib-iOS/releases/download/#{spec.version}/OSBarcodeLib.zip", :type => "zip" }
-  spec.vendored_frameworks    = "OSBarcodeLib.xcframework"
+  # Compile from source files
+  spec.source_files           = 'Sources/OSBarcodeLib/**/*.{swift,h,m}'
 
-  spec.ios.deployment_target  = '13.0'
-  spec.swift_versions         = ['5.0', '5.1', '5.2', '5.3', '5.4', '5.5', '5.6', '5.7', '5.8', '5.9']
+  # Include resources (xcassets for scanner UI)
+  spec.resources              = 'Sources/OSBarcodeLib/**/*.xcassets'
+
+  spec.ios.deployment_target  = '14.0'
+  spec.swift_versions         = ['5.0', '5.1', '5.2', '5.3', '5.4', '5.5', '5.6', '5.7', '5.8', '5.9', '5.10']
+
+  # Required frameworks for camera and barcode scanning
+  spec.frameworks             = 'AVFoundation', 'Vision', 'UIKit', 'SwiftUI', 'AudioToolbox'
 end
