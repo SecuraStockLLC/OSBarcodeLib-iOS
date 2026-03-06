@@ -11,12 +11,15 @@ final class OSBARCScannerBehaviour: OSBARCCoordinatable, OSBARCScannerProtocol {
     private var cancellables: Set<AnyCancellable> = []
     
     func startScanning(with parameters: OSBARCScanParameters, _ completion: @escaping (OSBARCScanResult) -> Void) {
+        let closeDelay = parameters.closeDelay
         $scanResult
             .dropFirst()    // drops the first value - the empty string
             .first()        // only publishes the first barcode value found
-            .sink {
-                self.coordinator.dismiss()
-                completion($0)
+            .sink { result in
+                DispatchQueue.main.asyncAfter(deadline: .now() + closeDelay) {
+                    self.coordinator.dismiss()
+                    completion(result)
+                }
             }
             .store(in: &cancellables)
         
@@ -35,7 +38,8 @@ final class OSBARCScannerBehaviour: OSBARCCoordinatable, OSBARCScannerProtocol {
         let barcodeDecoder = OSBARCCaptureOutputDecoder(
             scanResultBinding,
             shouldShowButton,
-            andHint: parameters.hint
+            andHint: parameters.hint,
+            vibrationEnabled: parameters.vibrationEnabled
         )
         let captureSessionManager = OSBARCCaptureSessionManager(
             parameters.cameraDirection,
@@ -43,13 +47,17 @@ final class OSBARCScannerBehaviour: OSBARCCoordinatable, OSBARCScannerProtocol {
             barcodeDecoder
         )
         guard let viewModel: OSBARCScannerViewModel = try? .init(cameraManager: captureSessionManager) else { return completion(OSBARCScanResult.empty()) }
+        let highlightColor = Color(hex: parameters.highlightColor) ?? .green
         let scannerView = OSBARCScannerView(
             viewModel: viewModel,
             scanResult: scanResultBinding,
             instructionsText: parameters.scanInstructions,
             buttonText: buttonText,
             shouldShowButton: shouldShowButton,
-            deviceType: UIDevice.current.userInterfaceIdiom.deviceTypeModel
+            deviceType: UIDevice.current.userInterfaceIdiom.deviceTypeModel,
+            highlightEnabled: parameters.highlightEnabled,
+            highlightColor: highlightColor,
+            highlightStrokeWidth: parameters.highlightStrokeWidth
         )
         let hostingController = OSBARCScannerViewHostingController(rootView: scannerView, parameters.scanOrientation)
         hostingController.modalPresentationStyle = .fullScreen

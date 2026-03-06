@@ -5,22 +5,29 @@ import SwiftUI
 struct OSBARCScannerView: View {
     /// View model with all the camera logic.
     @ObservedObject var viewModel: OSBARCScannerViewModel
-    
+
     /// The object containing the scanned value.
     @Binding var scanResult: OSBARCScanResult
-    
+
     /// Helper text to display.
     let instructionsText: String
-    
+
     /// Text to be shown in the Scan Button.
     let buttonText: String
     /// Indicates if the button should be shown.
     let shouldShowButton: Bool
     /// Indicates if scanning is enabled. It's only applied when there's a Scan Button visible (otherwise, scanning is automatically).
     @State private var buttonScanEnabled: Bool = false
-    
+
     /// The type of device being used.
     let deviceType: OSBARCDeviceTypeModel
+
+    /// Whether to show the highlight overlay around detected barcodes.
+    let highlightEnabled: Bool
+    /// The color of the highlight overlay.
+    let highlightColor: Color
+    /// The stroke width of the highlight overlay.
+    let highlightStrokeWidth: CGFloat
     
     /// Frame of portion of the screen used for scanning.
     @State private var scanFrame: CGRect = .zero
@@ -155,9 +162,18 @@ struct OSBARCScannerView: View {
         ZStack {
             // Camera Stream
             OSBARCScannerViewControllerRepresentable(viewModel.cameraManager)
-            
+
             backgroundView
-            
+
+            // Highlight overlay for detected barcode
+            if highlightEnabled, let boundingBox = scanResult.boundingBox {
+                OSBARCHighlightOverlay(
+                    boundingBox: boundingBox,
+                    color: highlightColor,
+                    strokeWidth: highlightStrokeWidth
+                )
+            }
+
             if isPhoneInPortrait {
                 VStack(spacing: screenPadding) {
                     // X View

@@ -13,21 +13,25 @@ final class OSBARCCaptureOutputDecoder: NSObject, AVCaptureVideoDataOutputSample
     private var scanButtonEnabled: Bool
     /// A hint, to scan a specific format (e.g. only qr code). `Nil` or `unknown` value means it can scan all.
     private var hint: OSBARCScannerHint?
-    
+    /// Indicates if vibration should occur on successful scan.
+    private let vibrationEnabled: Bool
+
     /// The publisher's cancellable instance collector.
     private var cancellables: Set<AnyCancellable> = []
-    
+
     /// Constructor.
     /// - Parameters:
     ///   - scanResult: Binding object with the value to return.
     ///   - scanThroughButton: Boolean indicating if scanning should be performed automatically or after clicking the Scan Button.
     ///   - scanButtonEnabled: Indicates if scanning has already been set on.
     ///   - hint: The optional hint, to scan a specific format (e.g. only qr code). `Nil` or `unknown` value means it can scan all.
-    init(_ scanResult: Binding<OSBARCScanResult>, _ scanThroughButton: Bool, _ scanButtonEnabled: Bool = false, andHint hint: OSBARCScannerHint? = nil) {
+    ///   - vibrationEnabled: Indicates if vibration should occur on successful scan.
+    init(_ scanResult: Binding<OSBARCScanResult>, _ scanThroughButton: Bool, _ scanButtonEnabled: Bool = false, andHint hint: OSBARCScannerHint? = nil, vibrationEnabled: Bool = true) {
         self._scanResult = scanResult
         self.scanThroughButton = scanThroughButton
         self.scanButtonEnabled = scanButtonEnabled
         self.hint = hint
+        self.vibrationEnabled = vibrationEnabled
         super.init()
         
         NotificationCenter.default
@@ -87,9 +91,12 @@ private extension OSBARCCaptureOutputDecoder {
     func processClassification(for request: VNRequest) {
         DispatchQueue.main.async {
             if let bestResult = request.results?.first as? VNBarcodeObservation, bestResult.confidence > 0.9, let payload = bestResult.payloadStringValue {
-                AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+                if self.vibrationEnabled {
+                    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+                }
                 let format = OSBARCScannerHint.fromVNBarcodeSymbology(bestResult.symbology, withHint: self.hint)
-                self.scanResult = OSBARCScanResult(text: payload, format: format)
+                let boundingBox = bestResult.boundingBox
+                self.scanResult = OSBARCScanResult(text: payload, format: format, boundingBox: boundingBox)
             }
         }
     }
