@@ -111,20 +111,69 @@ private extension OSBARCScannerViewController {
     func showHighlight(for boundingBox: CGRect) {
         guard let previewLayer = cameraManager.videoPreview as? AVCaptureVideoPreviewLayer else { return }
 
-        // Vision coordinates: origin at bottom-left, y increases upward
-        // Metadata output coordinates: origin at top-left, y increases downward
-        // Convert by flipping y: newY = 1 - oldY - height
-        let metadataRect = CGRect(
-            x: boundingBox.minX,
-            y: 1 - boundingBox.maxY,
-            width: boundingBox.width,
-            height: boundingBox.height
-        )
+        // Vision returns bounding box in the orientation-corrected coordinate space.
+        // But layerRectConverted expects coordinates in the raw camera buffer space (landscape).
+        // We need to transform based on current device orientation.
+        let orientation = UIDevice.current.orientation
+        let transformedBox: CGRect
+
+        switch orientation {
+        case .portrait:
+            // Camera is landscape, display is portrait (90° rotation)
+            // Transform: swap x/y, swap width/height, adjust for coordinate flip
+            transformedBox = CGRect(
+                x: boundingBox.minY,
+                y: 1 - boundingBox.maxX,
+                width: boundingBox.height,
+                height: boundingBox.width
+            )
+        case .portraitUpsideDown:
+            // 270° rotation
+            transformedBox = CGRect(
+                x: 1 - boundingBox.maxY,
+                y: boundingBox.minX,
+                width: boundingBox.height,
+                height: boundingBox.width
+            )
+        case .landscapeLeft:
+            // 180° rotation
+            transformedBox = CGRect(
+                x: 1 - boundingBox.maxX,
+                y: 1 - boundingBox.maxY,
+                width: boundingBox.width,
+                height: boundingBox.height
+            )
+        case .landscapeRight, .faceUp, .faceDown, .unknown:
+            // No rotation needed (or use portrait as default for face up/down)
+            if orientation == .faceUp || orientation == .faceDown || orientation == .unknown {
+                // Default to portrait transform for ambiguous orientations
+                transformedBox = CGRect(
+                    x: boundingBox.minY,
+                    y: 1 - boundingBox.maxX,
+                    width: boundingBox.height,
+                    height: boundingBox.width
+                )
+            } else {
+                // Landscape right - natural camera orientation
+                transformedBox = CGRect(
+                    x: boundingBox.minX,
+                    y: 1 - boundingBox.maxY,
+                    width: boundingBox.width,
+                    height: boundingBox.height
+                )
+            }
+        @unknown default:
+            transformedBox = CGRect(
+                x: boundingBox.minY,
+                y: 1 - boundingBox.maxX,
+                width: boundingBox.height,
+                height: boundingBox.width
+            )
+        }
 
         // Use AVCaptureVideoPreviewLayer's built-in conversion which handles:
         // - Video gravity (aspectFill/aspectFit)
-        // - Device orientation
-        let convertedRect = previewLayer.layerRectConverted(fromMetadataOutputRect: metadataRect)
+        let convertedRect = previewLayer.layerRectConverted(fromMetadataOutputRect: transformedBox)
 
         // Create rounded rectangle path
         let path = UIBezierPath(roundedRect: convertedRect, cornerRadius: 8)
