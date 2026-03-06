@@ -166,9 +166,11 @@ struct OSBARCScannerView: View {
             backgroundView
 
             // Highlight overlay for detected barcode
-            if highlightEnabled, let boundingBox = scanResult.boundingBox {
+            if highlightEnabled,
+               let boundingBox = scanResult.boundingBox,
+               let screenRect = viewModel.cameraManager.convertToScreenCoordinates(boundingBox) {
                 OSBARCHighlightOverlay(
-                    boundingBox: boundingBox,
+                    screenRect: screenRect,
                     color: highlightColor,
                     strokeWidth: highlightStrokeWidth
                 )

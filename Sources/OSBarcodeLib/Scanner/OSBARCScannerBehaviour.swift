@@ -11,6 +11,9 @@ final class OSBARCScannerBehaviour: OSBARCCoordinatable, OSBARCScannerProtocol {
     private var cancellables: Set<AnyCancellable> = []
     
     func startScanning(with parameters: OSBARCScanParameters, _ completion: @escaping (OSBARCScanResult) -> Void) {
+        // Reset scan result to clear any previous bounding box
+        self.scanResult = OSBARCScanResult.empty()
+
         let closeDelay = parameters.closeDelay
         $scanResult
             .dropFirst()    // drops the first value - the empty string

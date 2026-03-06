@@ -180,6 +180,34 @@ final class OSBARCCaptureSessionManager: OSBARCCameraManager {
             }
         }
     }
+
+    func convertToScreenCoordinates(_ boundingBox: CGRect) -> CGRect? {
+        guard let previewLayer = videoPreview as? AVCaptureVideoPreviewLayer else { return nil }
+
+        // Vision coordinates: origin at bottom-left, normalized (0-1)
+        // AVCaptureVideoPreviewLayer expects: origin at top-left, normalized (0-1)
+        // So we need to flip the y-axis: newY = 1 - oldY
+
+        // Convert the bounding box corners from Vision to preview layer coordinate system
+        // Vision: minY is bottom, maxY is top
+        // Preview layer: minY is top, maxY is bottom
+        let topLeft = CGPoint(x: boundingBox.minX, y: 1 - boundingBox.maxY)
+        let bottomRight = CGPoint(x: boundingBox.maxX, y: 1 - boundingBox.minY)
+
+        // Use the preview layer's built-in conversion which handles video gravity and orientation
+        let screenTopLeft = previewLayer.layerPointConverted(fromCaptureDevicePoint: topLeft)
+        let screenBottomRight = previewLayer.layerPointConverted(fromCaptureDevicePoint: bottomRight)
+
+        // Create the screen rect
+        let screenRect = CGRect(
+            x: min(screenTopLeft.x, screenBottomRight.x),
+            y: min(screenTopLeft.y, screenBottomRight.y),
+            width: abs(screenBottomRight.x - screenTopLeft.x),
+            height: abs(screenBottomRight.y - screenTopLeft.y)
+        )
+
+        return screenRect
+    }
 }
 
 private extension OSBARCCaptureSessionManager {
