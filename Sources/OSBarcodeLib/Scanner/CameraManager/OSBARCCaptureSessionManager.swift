@@ -8,25 +8,28 @@ enum OSBARCCaptureSessionManagerError: Error {
 }
 
 /// An implementation of the `OSBARCCameraManager` that uses the `AVCaptureDevice` for video display.
-final class OSBARCCaptureSessionManager: OSBARCCameraManager {
+final class OSBARCCaptureSessionManager: NSObject, OSBARCCameraManager {
     var videoPreview: CALayer?
-    
+
     /// List of available cameras to use.
     let captureDevices: [AVCaptureDevice]
     /// Orientation the screen should adapt to.
     let orientationModel: OSBARCOrientationModel
     /// Class responsible for decoding the camera output.
     let outputDecoder: OSBARCCaptureOutputDecoder
-    
+
     /// Maps the camera types fo the zoom factor. This is required as 0.5x zooming requires a different camera.
     private var cameraZoomMap: [Float: OSBARCCameraType] = [
         0.5: .zoomOut,
         1.0: .regular,
         2.0: .regular
     ]
-    
+
     /// Object that coordinates the follow between the input device to the capture output.
     private let captureSession = AVCaptureSession()
+
+    /// Metadata output for getting accurate screen coordinates via transformedMetadataObject
+    private let metadataOutput = AVCaptureMetadataOutput()
     
     /// Constructor method.
     /// - Parameters:
@@ -37,10 +40,12 @@ final class OSBARCCaptureSessionManager: OSBARCCameraManager {
         let deviceTypes: [AVCaptureDevice.DeviceType] = [OSBARCCameraType.regular, .zoomOut].map(\.deviceType)
         let cameraPosition = AVCaptureDevice.Position.map(cameraModel)
         let captureDevices = AVCaptureDevice.DiscoverySession(deviceTypes: deviceTypes, mediaType: .video, position: cameraPosition).devices
-        
+
         self.captureDevices = captureDevices
         self.orientationModel = orientationModel
         self.outputDecoder = barcodeDecoder
+
+        super.init()
     }
     
     func setup(type cameraType: OSBARCCameraType?) throws {
@@ -74,7 +79,18 @@ final class OSBARCCaptureSessionManager: OSBARCCameraManager {
             if self.captureSession.canAddOutput(deviceOutput) {
                 // What we will display on the screen
                 self.captureSession.addOutput(deviceOutput)
-                
+
+                // Add metadata output for accurate barcode highlight positioning
+                // This uses Apple's transformedMetadataObject for pixel-perfect coordinates
+                if self.captureSession.canAddOutput(metadataOutput) {
+                    self.captureSession.addOutput(metadataOutput)
+                    metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
+                    // Enable all barcode types
+                    metadataOutput.metadataObjectTypes = metadataOutput.availableMetadataObjectTypes.filter {
+                        $0 != .face && $0 != .humanBody && $0 != .catBody && $0 != .dogBody && $0 != .salientObject
+                    }
+                }
+
                 // Initialise the video preview layer and add it as a sublayer to the view's layer.
                 let videoPreviewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
                 videoPreviewLayer.videoGravity = .resizeAspectFill
@@ -241,5 +257,19 @@ private extension OSBARCCaptureSessionManager {
             }
             captureDeviceToUse.unlockForConfiguration()
         }
+    }
+}
+
+// MARK: - AVCaptureMetadataOutputObjectsDelegate
+extension OSBARCCaptureSessionManager: AVCaptureMetadataOutputObjectsDelegate {
+    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
+        guard let metadataObject = metadataObjects.first,
+              let previewLayer = videoPreview as? AVCaptureVideoPreviewLayer,
+              let transformedObject = previewLayer.transformedMetadataObject(for: metadataObject) else {
+            return
+        }
+
+        // Post the screen-coordinate bounds (already transformed by Apple's API)
+        NotificationCenter.default.post(name: .barcodeHighlightFrame, object: transformedObject.bounds)
     }
 }

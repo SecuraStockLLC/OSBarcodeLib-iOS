@@ -94,89 +94,25 @@ private extension OSBARCScannerViewController {
         highlightLayer = layer
     }
 
-    /// Sets up the observer for barcode detection notifications.
+    /// Sets up the observer for barcode highlight frame notifications.
     func setupBarcodeDetectionObserver() {
+        // Listen for screen-coordinate frames from AVCaptureMetadataOutput
+        // These are already transformed by Apple's transformedMetadataObject API
         NotificationCenter.default
-            .publisher(for: .barcodeDetected)
+            .publisher(for: .barcodeHighlightFrame)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
-                guard let boundingBox = notification.object as? CGRect else { return }
-                self?.showHighlight(for: boundingBox)
+                guard let screenRect = notification.object as? CGRect else { return }
+                self?.showHighlight(at: screenRect)
             }
             .store(in: &cancellables)
     }
 
-    /// Shows the highlight overlay at the barcode's position.
-    /// - Parameter boundingBox: The normalized bounding box from Vision (origin at bottom-left, values 0-1).
-    func showHighlight(for boundingBox: CGRect) {
-        guard let previewLayer = cameraManager.videoPreview as? AVCaptureVideoPreviewLayer else { return }
-
-        // Vision returns bounding box in the orientation-corrected coordinate space.
-        // But layerRectConverted expects coordinates in the raw camera buffer space (landscape).
-        // We need to transform based on current device orientation.
-        let orientation = UIDevice.current.orientation
-        let transformedBox: CGRect
-
-        switch orientation {
-        case .portrait:
-            // Camera is landscape, display is portrait (90° rotation)
-            // Transform: swap x/y, swap width/height, adjust for coordinate flip
-            transformedBox = CGRect(
-                x: boundingBox.minY,
-                y: 1 - boundingBox.maxX,
-                width: boundingBox.height,
-                height: boundingBox.width
-            )
-        case .portraitUpsideDown:
-            // 270° rotation
-            transformedBox = CGRect(
-                x: 1 - boundingBox.maxY,
-                y: boundingBox.minX,
-                width: boundingBox.height,
-                height: boundingBox.width
-            )
-        case .landscapeLeft:
-            // 180° rotation
-            transformedBox = CGRect(
-                x: 1 - boundingBox.maxX,
-                y: 1 - boundingBox.maxY,
-                width: boundingBox.width,
-                height: boundingBox.height
-            )
-        case .landscapeRight, .faceUp, .faceDown, .unknown:
-            // No rotation needed (or use portrait as default for face up/down)
-            if orientation == .faceUp || orientation == .faceDown || orientation == .unknown {
-                // Default to portrait transform for ambiguous orientations
-                transformedBox = CGRect(
-                    x: boundingBox.minY,
-                    y: 1 - boundingBox.maxX,
-                    width: boundingBox.height,
-                    height: boundingBox.width
-                )
-            } else {
-                // Landscape right - natural camera orientation
-                transformedBox = CGRect(
-                    x: boundingBox.minX,
-                    y: 1 - boundingBox.maxY,
-                    width: boundingBox.width,
-                    height: boundingBox.height
-                )
-            }
-        @unknown default:
-            transformedBox = CGRect(
-                x: boundingBox.minY,
-                y: 1 - boundingBox.maxX,
-                width: boundingBox.height,
-                height: boundingBox.width
-            )
-        }
-
-        // Use AVCaptureVideoPreviewLayer's built-in conversion which handles:
-        // - Video gravity (aspectFill/aspectFit)
-        let convertedRect = previewLayer.layerRectConverted(fromMetadataOutputRect: transformedBox)
-
-        // Create rounded rectangle path
-        let path = UIBezierPath(roundedRect: convertedRect, cornerRadius: 8)
+    /// Shows the highlight overlay at the given screen coordinates.
+    /// - Parameter screenRect: The barcode bounds in screen coordinates (from transformedMetadataObject).
+    func showHighlight(at screenRect: CGRect) {
+        // Create rounded rectangle path - coordinates are already in screen space
+        let path = UIBezierPath(roundedRect: screenRect, cornerRadius: 8)
 
         // Disable implicit animations for instant updates (no lag)
         CATransaction.begin()
