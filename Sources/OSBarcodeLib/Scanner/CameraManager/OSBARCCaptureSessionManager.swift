@@ -1,4 +1,5 @@
 import AVFoundation
+import Combine
 import UIKit
 
 /// Errors associated with the `OSBARCCaptureSessionManager`.
@@ -33,7 +34,13 @@ final class OSBARCCaptureSessionManager: NSObject, OSBARCCameraManager {
 
     /// Metadata output for getting accurate screen coordinates via transformedMetadataObject
     private let metadataOutput = AVCaptureMetadataOutput()
-    
+
+    /// The current scanning zone frame in screen coordinates
+    private var scanFrame: CGRect = .zero
+
+    /// The publisher's cancellable instance collector.
+    private var cancellables: Set<AnyCancellable> = []
+
     /// Constructor method.
     /// - Parameters:
     ///   - cameraModel: Camera to use for capturing (front or back).
@@ -51,6 +58,17 @@ final class OSBARCCaptureSessionManager: NSObject, OSBARCCameraManager {
         self.outputDecoder = barcodeDecoder
 
         super.init()
+
+        // Subscribe to scanning zone frame changes for center line calculations
+        NotificationCenter.default
+            .publisher(for: .scanFrameChanged)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] notification in
+                if let frame = notification.object as? CGRect {
+                    self?.scanFrame = frame
+                }
+            }
+            .store(in: &cancellables)
     }
     
     func setup(type cameraType: OSBARCCameraType?) throws {
@@ -277,7 +295,7 @@ extension OSBARCCaptureSessionManager: AVCaptureMetadataOutputObjectsDelegate {
         // If scan line mode is enabled, only highlight barcodes that cross the center line
         // Screen coordinates: origin top-left, Y increases downward (pixels)
         if scanLineEnabled {
-            let centerY = previewLayer.bounds.midY
+            let centerY = scanFrame.midY
             let crossesCenterLine = transformedObject.bounds.minY < centerY && transformedObject.bounds.maxY > centerY
             guard crossesCenterLine else { return }
         }

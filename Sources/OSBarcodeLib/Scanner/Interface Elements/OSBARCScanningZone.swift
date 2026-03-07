@@ -28,6 +28,7 @@ struct OSBARCScanningZone: View {
                 Rectangle()
                     .fill(Color.red)
                     .frame(width: size.width, height: 2)
+                    .position(x: size.width / 2, y: size.height / 2)
             }
         }
     }

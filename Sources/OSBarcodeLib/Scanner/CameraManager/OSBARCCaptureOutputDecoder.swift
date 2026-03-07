@@ -98,8 +98,10 @@ private extension OSBARCCaptureOutputDecoder {
                 // If scan line mode is enabled, only process barcodes that cross the center line
                 // Vision coordinates: origin bottom-left, Y increases upward (0 to 1)
                 if self.scanLineEnabled {
+                    let roi = self.detectBarcodeRequest.regionOfInterest
+                    let roiCenterY = roi.midY
                     let boundingBox = bestResult.boundingBox
-                    let crossesCenterLine = boundingBox.minY < 0.5 && boundingBox.maxY > 0.5
+                    let crossesCenterLine = boundingBox.minY < roiCenterY && boundingBox.maxY > roiCenterY
                     guard crossesCenterLine else { return }
                 }
                 if self.vibrationEnabled {
