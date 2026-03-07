@@ -31,6 +31,9 @@ public struct OSBARCScanParameters {
     /// Whether to vibrate on successful scan.
     public let vibrationEnabled: Bool
 
+    /// Whether to enable center-line-only scanning (red line mode).
+    public let scanLineEnabled: Bool
+
     public init(scanInstructions: String,
                 scanButtonText: String?,
                 cameraDirection: OSBARCCameraModel,
@@ -40,7 +43,8 @@ public struct OSBARCScanParameters {
                 highlightColor: String = "#00FF00",
                 highlightStrokeWidth: CGFloat = 4.0,
                 closeDelay: TimeInterval = 0.5,
-                vibrationEnabled: Bool = true) {
+                vibrationEnabled: Bool = true,
+                scanLineEnabled: Bool = false) {
         self.scanInstructions = scanInstructions
         self.scanButtonText = scanButtonText
         self.cameraDirection = cameraDirection
@@ -51,5 +55,6 @@ public struct OSBARCScanParameters {
         self.highlightStrokeWidth = highlightStrokeWidth
         self.closeDelay = closeDelay
         self.vibrationEnabled = vibrationEnabled
+        self.scanLineEnabled = scanLineEnabled
     }
 }

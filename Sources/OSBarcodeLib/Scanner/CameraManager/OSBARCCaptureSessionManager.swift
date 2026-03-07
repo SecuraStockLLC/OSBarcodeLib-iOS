@@ -11,6 +11,9 @@ enum OSBARCCaptureSessionManagerError: Error {
 final class OSBARCCaptureSessionManager: NSObject, OSBARCCameraManager {
     var videoPreview: CALayer?
 
+    /// Indicates if center-line-only scanning is enabled.
+    let scanLineEnabled: Bool
+
     /// List of available cameras to use.
     let captureDevices: [AVCaptureDevice]
     /// Orientation the screen should adapt to.
@@ -36,11 +39,13 @@ final class OSBARCCaptureSessionManager: NSObject, OSBARCCameraManager {
     ///   - cameraModel: Camera to use for capturing (front or back).
     ///   - orientationModel: Orientation the screen should adapt to.
     ///   - barcodeDecoder: Class responsible for decoding the camera output.
-    init(_ cameraModel: OSBARCCameraModel, _ orientationModel: OSBARCOrientationModel, _ barcodeDecoder: OSBARCCaptureOutputDecoder) {
+    ///   - scanLineEnabled: Indicates if center-line-only scanning is enabled.
+    init(_ cameraModel: OSBARCCameraModel, _ orientationModel: OSBARCOrientationModel, _ barcodeDecoder: OSBARCCaptureOutputDecoder, scanLineEnabled: Bool = false) {
         let deviceTypes: [AVCaptureDevice.DeviceType] = [OSBARCCameraType.regular, .zoomOut].map(\.deviceType)
         let cameraPosition = AVCaptureDevice.Position.map(cameraModel)
         let captureDevices = AVCaptureDevice.DiscoverySession(deviceTypes: deviceTypes, mediaType: .video, position: cameraPosition).devices
 
+        self.scanLineEnabled = scanLineEnabled
         self.captureDevices = captureDevices
         self.orientationModel = orientationModel
         self.outputDecoder = barcodeDecoder
@@ -267,6 +272,14 @@ extension OSBARCCaptureSessionManager: AVCaptureMetadataOutputObjectsDelegate {
               let previewLayer = videoPreview as? AVCaptureVideoPreviewLayer,
               let transformedObject = previewLayer.transformedMetadataObject(for: metadataObject) else {
             return
+        }
+
+        // If scan line mode is enabled, only highlight barcodes that cross the center line
+        // Screen coordinates: origin top-left, Y increases downward (pixels)
+        if scanLineEnabled {
+            let centerY = previewLayer.bounds.midY
+            let crossesCenterLine = transformedObject.bounds.minY < centerY && transformedObject.bounds.maxY > centerY
+            guard crossesCenterLine else { return }
         }
 
         // Post the screen-coordinate bounds (already transformed by Apple's API)

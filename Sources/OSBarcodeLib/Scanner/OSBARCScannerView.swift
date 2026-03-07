@@ -28,6 +28,8 @@ struct OSBARCScannerView: View {
     let highlightColor: Color
     /// The stroke width of the highlight overlay.
     let highlightStrokeWidth: CGFloat
+    /// Whether to enable center-line-only scanning (red line mode).
+    let scanLineEnabled: Bool
     
     /// Frame of portion of the screen used for scanning.
     @State private var scanFrame: CGRect = .zero
@@ -86,7 +88,7 @@ struct OSBARCScannerView: View {
         
         // Scanning Zone
         GeometryReader { scanningZoneProxy in
-            OSBARCScanningZone(size: scannerSize)
+            OSBARCScanningZone(size: scannerSize, scanLineEnabled: scanLineEnabled)
                 .onAppear(perform: {
                     let scanningZoneFrame = scanningZoneProxy.frame(in: .global)
                     scanFrame = .init(

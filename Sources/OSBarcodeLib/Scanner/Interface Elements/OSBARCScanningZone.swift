@@ -5,7 +5,9 @@ import SwiftUI
 struct OSBARCScanningZone: View {
     /// The size of the scanning zone.
     let size: CGSize
-    
+    /// Whether to show the center scan line (red line mode).
+    let scanLineEnabled: Bool
+
     /// Considering the aim outside is a Rounded Rectangle, this is the radius of its vertices.
     private let radius: CGFloat = OSBARCScannerViewConfigurationValues.defaultRadius
     /// The colour of the aim's line.
@@ -14,12 +16,20 @@ struct OSBARCScanningZone: View {
     private let stroke: CGFloat = OSBARCScannerViewConfigurationValues.defaultLineStroke
     /// Length of the aim's line.
     private let lineSize: CGFloat = OSBARCScannerViewConfigurationValues.scannerLineSize
-    
+
     var body: some View {
-        RoundedRectangle(cornerRadius: radius)
-            .strokeBorder(color, style: .init(
-                lineWidth: stroke, dash: self.calculateDashes(for: size), dashPhase: self.calculateDashPhase(for: size.height)
-            ))
+        ZStack {
+            RoundedRectangle(cornerRadius: radius)
+                .strokeBorder(color, style: .init(
+                    lineWidth: stroke, dash: self.calculateDashes(for: size), dashPhase: self.calculateDashPhase(for: size.height)
+                ))
+
+            if scanLineEnabled {
+                Rectangle()
+                    .fill(Color.red)
+                    .frame(height: 2)
+            }
+        }
     }
 }
 

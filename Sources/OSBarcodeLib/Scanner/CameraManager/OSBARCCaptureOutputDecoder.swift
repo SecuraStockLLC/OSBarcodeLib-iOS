@@ -15,6 +15,8 @@ final class OSBARCCaptureOutputDecoder: NSObject, AVCaptureVideoDataOutputSample
     private var hint: OSBARCScannerHint?
     /// Indicates if vibration should occur on successful scan.
     private let vibrationEnabled: Bool
+    /// Indicates if center-line-only scanning is enabled.
+    private let scanLineEnabled: Bool
 
     /// The publisher's cancellable instance collector.
     private var cancellables: Set<AnyCancellable> = []
@@ -26,12 +28,14 @@ final class OSBARCCaptureOutputDecoder: NSObject, AVCaptureVideoDataOutputSample
     ///   - scanButtonEnabled: Indicates if scanning has already been set on.
     ///   - hint: The optional hint, to scan a specific format (e.g. only qr code). `Nil` or `unknown` value means it can scan all.
     ///   - vibrationEnabled: Indicates if vibration should occur on successful scan.
-    init(_ scanResult: Binding<OSBARCScanResult>, _ scanThroughButton: Bool, _ scanButtonEnabled: Bool = false, andHint hint: OSBARCScannerHint? = nil, vibrationEnabled: Bool = true) {
+    ///   - scanLineEnabled: Indicates if center-line-only scanning is enabled.
+    init(_ scanResult: Binding<OSBARCScanResult>, _ scanThroughButton: Bool, _ scanButtonEnabled: Bool = false, andHint hint: OSBARCScannerHint? = nil, vibrationEnabled: Bool = true, scanLineEnabled: Bool = false) {
         self._scanResult = scanResult
         self.scanThroughButton = scanThroughButton
         self.scanButtonEnabled = scanButtonEnabled
         self.hint = hint
         self.vibrationEnabled = vibrationEnabled
+        self.scanLineEnabled = scanLineEnabled
         super.init()
         
         NotificationCenter.default
@@ -91,6 +95,13 @@ private extension OSBARCCaptureOutputDecoder {
     func processClassification(for request: VNRequest) {
         DispatchQueue.main.async {
             if let bestResult = request.results?.first as? VNBarcodeObservation, bestResult.confidence > 0.9, let payload = bestResult.payloadStringValue {
+                // If scan line mode is enabled, only process barcodes that cross the center line
+                // Vision coordinates: origin bottom-left, Y increases upward (0 to 1)
+                if self.scanLineEnabled {
+                    let boundingBox = bestResult.boundingBox
+                    let crossesCenterLine = boundingBox.minY < 0.5 && boundingBox.maxY > 0.5
+                    guard crossesCenterLine else { return }
+                }
                 if self.vibrationEnabled {
                     AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
                 }

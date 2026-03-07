@@ -42,12 +42,14 @@ final class OSBARCScannerBehaviour: OSBARCCoordinatable, OSBARCScannerProtocol {
             scanResultBinding,
             shouldShowButton,
             andHint: parameters.hint,
-            vibrationEnabled: parameters.vibrationEnabled
+            vibrationEnabled: parameters.vibrationEnabled,
+            scanLineEnabled: parameters.scanLineEnabled
         )
         let captureSessionManager = OSBARCCaptureSessionManager(
             parameters.cameraDirection,
             parameters.scanOrientation,
-            barcodeDecoder
+            barcodeDecoder,
+            scanLineEnabled: parameters.scanLineEnabled
         )
         guard let viewModel: OSBARCScannerViewModel = try? .init(cameraManager: captureSessionManager) else { return completion(OSBARCScanResult.empty()) }
         let highlightColor = Color(hex: parameters.highlightColor) ?? .green
@@ -60,7 +62,8 @@ final class OSBARCScannerBehaviour: OSBARCCoordinatable, OSBARCScannerProtocol {
             deviceType: UIDevice.current.userInterfaceIdiom.deviceTypeModel,
             highlightEnabled: parameters.highlightEnabled,
             highlightColor: highlightColor,
-            highlightStrokeWidth: parameters.highlightStrokeWidth
+            highlightStrokeWidth: parameters.highlightStrokeWidth,
+            scanLineEnabled: parameters.scanLineEnabled
         )
         let hostingController = OSBARCScannerViewHostingController(rootView: scannerView, parameters.scanOrientation)
         hostingController.modalPresentationStyle = .fullScreen
