@@ -66,6 +66,10 @@ final class OSBARCCaptureSessionManager: NSObject, OSBARCCameraManager {
             .sink { [weak self] notification in
                 if let frame = notification.object as? CGRect {
                     self?.scanFrame = frame
+                    // Also update metadata output's rect of interest to restrict detection to scanning zone
+                    if let previewLayer = self?.videoPreview as? AVCaptureVideoPreviewLayer {
+                        self?.metadataOutput.rectOfInterest = previewLayer.metadataOutputRectConverted(fromLayerRect: frame)
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -295,6 +299,8 @@ extension OSBARCCaptureSessionManager: AVCaptureMetadataOutputObjectsDelegate {
         // If scan line mode is enabled, only highlight barcodes that cross the center line
         // Screen coordinates: origin top-left, Y increases downward (pixels)
         if scanLineEnabled {
+            // Don't highlight until scanFrame is properly initialized
+            guard scanFrame != .zero else { return }
             let centerY = scanFrame.midY
             let crossesCenterLine = transformedObject.bounds.minY < centerY && transformedObject.bounds.maxY > centerY
             guard crossesCenterLine else { return }

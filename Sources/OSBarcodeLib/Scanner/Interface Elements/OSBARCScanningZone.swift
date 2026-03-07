@@ -31,6 +31,7 @@ struct OSBARCScanningZone: View {
                     .position(x: size.width / 2, y: size.height / 2)
             }
         }
+        .frame(width: size.width, height: size.height)
     }
 }
 
