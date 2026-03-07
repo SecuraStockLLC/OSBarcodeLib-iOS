@@ -27,7 +27,7 @@ struct OSBARCScanningZone: View {
             if scanLineEnabled {
                 Rectangle()
                     .fill(Color.red)
-                    .frame(height: 2)
+                    .frame(width: size.width, height: 2)
             }
         }
     }
